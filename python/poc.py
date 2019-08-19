@@ -30,8 +30,8 @@ parser.add_argument('--n-items-per-sess', type=int, default=10)
 parser.add_argument('--n-sesses', type=int, default=10)
 parser.add_argument('--n-users', type=int, default=10000)
 parser.add_argument('--p-div', type=float, default=0.1)
-parser.add_argument('--p-train', type=float, default=0.01)
-parser.add_argument('--p-val', type=float, default=0.5)
+parser.add_argument('--p-train', type=float, default=0.25)
+parser.add_argument('--p-val', type=float, default=0.25)
 parser.add_argument('--temporal', action='store_true')
 args = parser.parse_args()
 args.n_items = args.n_ctgrs * args.n_items_per_ctgr
@@ -49,7 +49,7 @@ print(args)
 print('# ratings: %d' % len(uid))
 
 if args.temporal:
-    uid = np.hstack([x + i for i, x in enumerate(sess_uids)])
+    uid = np.hstack([x + i * args.n_users for i, x in enumerate(sess_uids)])
     iid = np.hstack(sess_iids)
 
 [uid_train, iid_train], \
@@ -82,10 +82,11 @@ if args.temporal:
         p = np.expand_dims(softmax(np.sum(u * i, 2), 1), 2)
         return rmse(np.sum(p * u, 1), np.squeeze(i), np.ones(len(uid)))
 
-    h_user /= npl.norm(h_user, 2, 1, keepdims=True) + 1e-3
-    h_user = np.stack(np.vsplit(h_user, args.n_sesses), 1)
-    h_item /= npl.norm(h_item, 2, 1, keepdims=True) + 1e-3
-    h_item = np.expand_dims(h_item, 1)
-    rmse_val = temporal_rmse(h_user, h_item, uid_val % args.n_sesses, iid_val, np.ones(len(uid_val)))
-    rmse_test = temporal_rmse(h_user, h_item, uid_test % args.n_sesses, iid_test, np.ones(len(iid_test)))
-    print('%.3e | %.3e' % (rmse_val, rmse_test))
+    u = h_user / (1e-3 + npl.norm(h_user, 2, 1, keepdims=True))
+    u = np.stack(np.vsplit(u, args.n_sesses), 1)
+    i = h_item / (1e-3 + npl.norm(h_item, 2, 1, keepdims=True))
+    i = np.expand_dims(i, 1)
+    rmse_train = temporal_rmse(u, i, uid_train % args.n_sesses, iid_train, np.ones(len(uid_train)))
+    rmse_val = temporal_rmse(u, i, uid_val % args.n_sesses, iid_val, np.ones(len(uid_val)))
+    rmse_test = temporal_rmse(u, i, uid_test % args.n_sesses, iid_test, np.ones(len(iid_test)))
+    print('%.3e | %.3e | %.3e' % (rmse_train, rmse_val, rmse_test))
