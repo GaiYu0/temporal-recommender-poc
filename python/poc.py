@@ -29,14 +29,16 @@ parser.add_argument('--n-items-per-ctgr', type=int, default=100)
 parser.add_argument('--n-items-per-sess', type=int, default=10)
 parser.add_argument('--n-sesses', type=int, default=10)
 parser.add_argument('--n-users', type=int, default=10000)
-parser.add_argument('--p-div', type=float, default=0.1)
-parser.add_argument('--p-train', type=float, default=0.25)
-parser.add_argument('--p-val', type=float, default=0.25)
+parser.add_argument('--p-div', type=float, default=0)
+parser.add_argument('--p-train', type=float, default=0.1)
+parser.add_argument('--p-val', type=float, default=0.5)
 parser.add_argument('--temporal', action='store_true')
+parser.add_argument('--verbose', action='store_true')
 args = parser.parse_args()
 args.n_items = args.n_ctgrs * args.n_items_per_ctgr
 
-print(args)
+if args.verbose:
+    print(args)
 
 [uid, iid], \
 [sess_uids, sess_iids] = generate(args.n_users,
@@ -46,7 +48,8 @@ print(args)
                                   args.n_items_per_sess,
                                   args.p_div)
 
-print('# ratings: %d' % len(uid))
+if args.verbose:
+    print('# ratings: %d' % len(uid))
 
 if args.temporal:
     uid = np.hstack([x + i * args.n_users for i, x in enumerate(sess_uids)])
